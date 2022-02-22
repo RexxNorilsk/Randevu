@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <time.h>
 
+//mpiexec -n 8 "C:\Parallel 3.2\Randevu\x64\Debug\Randevu.exe"
 
 #define PERCENT_NOREQUEST 50
 
@@ -58,7 +59,7 @@ int main(int argv, char** argc)
 			cout << "[Server] ====== Day: " << t << " ====== " << endl;
 			//Создаём очередь
 			Queue queue;
-			queue.length = size - 1;
+			queue.length = 3;
 			queue.clients = (int*)malloc(queue.length);
 			memset(queue.clients, -1, queue.length);
 			
@@ -70,8 +71,17 @@ int main(int argv, char** argc)
 				MPI_Recv(&buf, 1, MPI_INT, i, 1, MPI_COMM_WORLD, &status);
 				cout << "[Client " << i << "] " << (buf >= PERCENT_NOREQUEST ? "Yes" : "No") << endl;
 				if (buf >= PERCENT_NOREQUEST) {
-					queue.clients[queue.pointer++] = i;
-					cout << "[Server] Client " << i << " added to the queue by number " << queue.pointer-1 << endl;
+					if (queue.pointer == queue.length) {
+						buf = 0;
+						cout << "[Server] Sorry queue is full!" << endl;
+					}
+					else {
+						queue.clients[queue.pointer++] = i;
+						cout << "[Server] Client " << i << " added to the queue by number " << queue.pointer - 1 << endl;
+						buf = 1;
+					}
+					MPI_Send(&buf, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+					
 				}
 				Sleep(randomRange(150, 100));
 			}
@@ -92,7 +102,10 @@ int main(int argv, char** argc)
 
 			if (buf >= PERCENT_NOREQUEST) {
 				MPI_Recv(&buf, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				rendez_vous(0, rank);
+				if (buf == 1) {
+					MPI_Recv(&buf, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+					rendez_vous(0, rank);
+				}
 			}
 		}
 		MPI_Barrier(MPI_COMM_WORLD);
