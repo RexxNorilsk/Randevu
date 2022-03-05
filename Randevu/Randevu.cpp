@@ -99,6 +99,9 @@ int main(int argv, char** argc)
 		Sleep(randomRange(3000, 1000));
 	}
 	
+
+
+	if(rank == 0)cout << "[Server] ====== Stopped ====== " << endl;
 	
 	MPI_Finalize();
 }
